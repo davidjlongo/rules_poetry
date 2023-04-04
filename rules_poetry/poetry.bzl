@@ -106,13 +106,14 @@ def _impl(repository_ctx):
     lockfile = json.decode(result.stdout)
     metadata = lockfile["metadata"]
 
-    if metadata.get("lock-version") == "2.0":
-        packages = lockfile["package"]
-        hashes = {
-            package["name"]: [file["hash"] for file in package["files"]]
-            for package in packages
-        }
-    elif "files" in metadata:  # Poetry 1.x format
+    package_files = [{"name": package["name"], "files": package["files"]} for package in lockfile["package"] if package.get("files")]
+
+    if any(package_files): # Poetry >=1.3 format
+        hashes = {}
+
+        for files in package_files:
+            hashes[files["name"]] = [x["hash"] for x in files["files"]]
+    elif "files" in metadata:  # Poetry 1.x to 1.3 format
         files = metadata["files"]
 
         # only the hashes are needed to build a requirements.txt
